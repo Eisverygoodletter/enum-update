@@ -1,5 +1,4 @@
-use enum_update::EnumUpdate;
-use enum_update_derive::{EnumUpdate, EnumUpdateSetters};
+use enum_update::{ EnumUpdate, EnumUpdateSetters };
 
 #[derive(Debug, EnumUpdate, Clone, EnumUpdateSetters)]
 #[enum_update(derive(Debug, Clone, PartialEq))]
