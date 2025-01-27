@@ -2,6 +2,11 @@
 name = "enum-update-derive"
 version = "0.1.0"
 edition = "2021"
+description = "Derive macros for representing state changes as enums"
+license = "MIT"
+repository = "https://github.com/Eisverygoodletter/enum-update"
+keywords = ["enum", "macros", "proc-macros", "state"]
+readme = "../README.md"
 
 [lib]
 proc-macro = true
