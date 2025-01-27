@@ -1,5 +1,5 @@
 # enum-update
-![Crates.io Total Downloads](https://img.shields.io/crates/d/enum-update) ![docs.rs](https://img.shields.io/docsrs/enum-update) ![GitHub License](https://img.shields.io/github/license/Eisverygoodletter/enum-update) ![GitHub contributors](https://img.shields.io/github/contributors/Eisverygoodletter/enum-update)
+[![Crates.io Version](https://img.shields.io/crates/v/enum-update?label=crates.io)](https://crates.io/crates/enum-update) [![docs.rs](https://img.shields.io/docsrs/enum-update)](https://docs.rs/enum-update/latest/enum_update/) [![GitHub License](https://img.shields.io/github/license/Eisverygoodletter/enum-update)](LICENSE) [![GitHub contributors](https://img.shields.io/github/contributors/Eisverygoodletter/enum-update)](#)
 
 `enum-update` is a set of macros and traits for representing state changes as enums.
 
