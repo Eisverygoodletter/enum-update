@@ -82,8 +82,7 @@ impl<'s> EnumPatch<'s> {
                 if attribute
                     .path()
                     .get_ident()
-                    .map(|v| v == "enum_update")
-                    .unwrap_or(false)
+                    .is_some_and(|v| v == "enum_update")
                 {
                     let mut ts = attribute
                         .meta
