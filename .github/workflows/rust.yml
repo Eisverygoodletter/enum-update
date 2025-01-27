@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: prepare README.md
-    - run: cp README.md enum-update/README.md
+      run: cp README.md enum-update/README.md
     - name: Build
       run: cargo build --verbose
     - name: Run tests
