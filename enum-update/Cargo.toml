@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-enum-update-derive = { path = "../enum-update-derive" }
+enum-update-derive = { version = "0.1.0", path = "../enum-update-derive" }
