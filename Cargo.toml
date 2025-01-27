@@ -1,0 +1,3 @@
+[workspace]
+members = ["enum-update", "enum-update-derive"]
+resolver = "3"
