@@ -22,14 +22,14 @@ fn communicating_threads() {
         .unwrap();
     let thread_two = std::thread::Builder::new()
         .spawn(move || {
-            assert_eq!(thread_two_state.managed_by_first, false);
+            assert!(!thread_two_state.managed_by_first);
             // now, we receive the change
             let change = two_recv.recv().unwrap();
             assert_eq!(change, SharedStateUpdate::ManagedByFirst(true));
             // applying the change
             thread_two_state.apply(change);
             // it becomes true
-            assert_eq!(thread_two_state.managed_by_first, true);
+            assert!(thread_two_state.managed_by_first);
         })
         .unwrap();
     thread_one.join().unwrap();
