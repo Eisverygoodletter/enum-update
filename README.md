@@ -1,6 +1,8 @@
 # enum-update
 `enum-update` is a set of macros and traits for representing state changes as enums.
 
+> Note: `enum-update` is currently at `v0.1.0` and is not at stable `v1.0.0` yet. Overall functionality should stay the same, but trait and macro names may change between versions.
+
 # Adding `enum-update` to your project
 
 Import `enum-update` into your project by running this command.
