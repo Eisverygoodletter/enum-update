@@ -1,0 +1,7 @@
+[package]
+name = "enum-update"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+enum-update-derive = { path = "../enum-update-derive" }
