@@ -1,6 +1,7 @@
 use enum_update_derive::{EnumUpdate, EnumUpdateSetters};
 
-#[derive(EnumUpdate, EnumUpdateSetters)]
+#[derive(Debug, EnumUpdate, EnumUpdateSetters, PartialEq)]
+#[enum_update(derive(Debug, PartialEq))]
 pub struct TestStruct<'a, T: Clone> {
     #[variant_group(UpdateBoth)]
     test: String,
@@ -16,7 +17,7 @@ pub struct TestStruct<'a, T: Clone> {
 pub struct UnitStruct;
 
 #[test]
-fn tes() {
+fn test() {
     let mut referenced = 123;
     let mut state = TestStruct {
         test: "hello".to_string(),
@@ -27,7 +28,5 @@ fn tes() {
         ref_and_custom: &(),
         a_mutable: &mut referenced,
     };
-    state.modify_custom_value(());
-
-    //hello
+    assert_eq!(state.modify_custom_value(()), TestStructUpdate::CustomValue(()));
 }
