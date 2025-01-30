@@ -75,7 +75,7 @@ use quote::TokenStreamExt;
 /// ```
 /// will generate
 /// ```
-/// pub struct TimeSeriesDataUpdate {
+/// pub enum TimeSeriesDataUpdate {
 ///     Time(u32),
 ///     ValueOne(u32),
 ///     NewName(u32), // <-- corresponds to original_name
