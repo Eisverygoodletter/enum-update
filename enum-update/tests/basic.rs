@@ -28,5 +28,8 @@ fn test() {
         ref_and_custom: &(),
         a_mutable: &mut referenced,
     };
-    assert_eq!(state.modify_custom_value(()), TestStructUpdate::CustomValue(()));
+    assert_eq!(
+        state.modify_custom_value(()),
+        TestStructUpdate::CustomValue(())
+    );
 }
