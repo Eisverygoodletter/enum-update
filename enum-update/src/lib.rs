@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![no_std]
 //! This crate provides several derive macros that help with representing
 //! changes to structs using enums.
 //!
