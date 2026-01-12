@@ -1,6 +1,6 @@
 [package]
 name = "enum-update"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "A library for representing state changes as enums"
 license = "MIT"
@@ -9,4 +9,4 @@ keywords = ["enum", "macros", "proc-macros", "state"]
 readme = "../README.md"
 
 [dependencies]
-enum-update-derive = { version = "0.1.0", path = "../enum-update-derive" }
+enum-update-derive = { version = "0.2.0", path = "../enum-update-derive" }
