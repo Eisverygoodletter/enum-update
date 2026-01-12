@@ -63,12 +63,16 @@ use quote::TokenStreamExt;
 /// ```
 #[proc_macro_derive(EnumUpdate, attributes(variant_group, enum_update))]
 pub fn enum_update_derive(inputs: TokenStream) -> TokenStream {
-    let parsed = syn::parse(inputs).unwrap();
-    let receiver = EnumPatch::from_item_struct(&parsed).unwrap();
+    enum_update_derive_impl(inputs).unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+fn enum_update_derive_impl(inputs: TokenStream) -> syn::Result<TokenStream> {
+    let parsed = syn::parse(inputs)?;
+    let receiver = EnumPatch::from_item_struct(&parsed)?;
     let construction = receiver.to_construction();
     let mut output = construction.generate_enum();
     output.append_all(construction.generate_enum_patch_impl());
-    output.into()
+    Ok(output.into())
 }
 
 /// Generates setter methods that also return enum updates.
@@ -80,8 +84,11 @@ pub fn enum_update_derive(inputs: TokenStream) -> TokenStream {
     attributes(variant_group, skip_default, rename_default, enum_update)
 )]
 pub fn enum_update_setters_derive(inputs: TokenStream) -> TokenStream {
-    let parsed = syn::parse(inputs).unwrap();
-    let receiver = EnumPatch::from_item_struct(&parsed).unwrap();
+    enum_update_setters_derive_impl(inputs).unwrap_or_else(|e| e.to_compile_error().into())
+}
+fn enum_update_setters_derive_impl(inputs: TokenStream) -> syn::Result<TokenStream> {
+    let parsed = syn::parse(inputs)?;
+    let receiver = EnumPatch::from_item_struct(&parsed)?;
     let construction = receiver.to_construction();
-    construction.generate_setters().into()
+    Ok(construction.generate_setters().into())
 }
