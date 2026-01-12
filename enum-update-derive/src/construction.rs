@@ -1,6 +1,5 @@
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
 use std::borrow::Cow;
-use syn::{ConstParam, LifetimeParam, TypeParam};
 
 use crate::{convert_ident_to_case, EnumPatch};
 pub(crate) struct EnumConstructionInfo<'s> {
@@ -35,15 +34,14 @@ impl<'s> EnumConstructionVariant<'s> {
         }
         Some(complete_stream)
     }
-    fn generate_pattern_matcher_with_idents(&self, enum_name: &syn::Ident) -> proc_macro2::TokenStream {
+    fn generate_pattern_matcher_with_idents(
+        &self,
+        enum_name: &syn::Ident,
+    ) -> proc_macro2::TokenStream {
         self.generate_constructor_with_idents(enum_name)
     }
     fn generate_constructor_with_idents(&self, enum_name: &syn::Ident) -> proc_macro2::TokenStream {
-        let idents: Vec<_> = self
-            .ident_mappings
-            .iter()
-            .map(|(ident, _)| ident)
-            .collect();
+        let idents: Vec<_> = self.ident_mappings.iter().map(|(ident, _)| ident).collect();
         let variant_name = &self.variant_name;
         quote! {
             #enum_name::#variant_name{

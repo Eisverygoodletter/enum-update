@@ -5,23 +5,24 @@ use enum_update_derive::{EnumUpdate, EnumUpdateSetters};
 pub struct TestStruct {
     #[variant_group(UpdateBoth)]
     test: String,
-    // #[rename_default(ADifferentName)]
     #[variant_group(UpdateBoth)]
     test2: i32,
-    generics_included: Box<i32>,
 }
 pub struct UnitStruct;
 
 #[test]
 fn test() {
-    let mut referenced = 123;
     let mut state = TestStruct {
         test: "hello".to_string(),
         test2: 123,
-        generics_included: Box::new(456),
     };
-    // assert_eq!(
-    //     state.modify_custom_value(()),
-    //     TestStructUpdate::CustomValue(())
-    // );
+    assert_eq!(
+        state.modify_update_both("".to_string(), 0),
+        TestStructUpdate::UpdateBoth {
+            test: "".to_string(),
+            test2: 0
+        }
+    );
+    assert_eq!(state.test, "".to_string());
+    assert_eq!(state.test2, 0);
 }

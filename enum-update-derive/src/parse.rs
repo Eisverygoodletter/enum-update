@@ -1,10 +1,7 @@
 use convert_case::{Case, Casing};
 use quote::{quote, ToTokens};
-use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-};
-use syn::{parse::Parser, Attribute, ItemStruct, Lifetime, TypeArray, TypeBareFn, TypeReference};
+use std::{borrow::Cow, collections::HashMap};
+use syn::{parse::Parser, ItemStruct};
 
 use crate::{EnumConstructionInfo, EnumConstructionVariant};
 
@@ -26,6 +23,7 @@ impl<'s> EnumPatchField<'s> {
         let mut all_variant_groups: Vec<std::borrow::Cow<'s, syn::Ident>> = vec![];
         for attr in &field.attrs {
             if let Some(attr_name) = attr.path().get_ident() {
+                #[allow(clippy::single_match)]
                 match attr_name.to_string().as_str() {
                     "variant_group" => {
                         if let syn::Meta::Path(_) = &attr.meta {
@@ -52,7 +50,6 @@ pub(crate) struct EnumPatch<'s> {
     visibility: &'s syn::Visibility,
     ident: &'s syn::Ident,
     fields: Vec<EnumPatchField<'s>>,
-    generics: &'s syn::Generics,
     passed_attributes: Vec<syn::Attribute>,
 }
 
@@ -68,7 +65,7 @@ impl<'s> EnumPatch<'s> {
             .iter()
             .map(EnumPatchField::from_field)
             .collect::<syn::Result<Vec<EnumPatchField>>>()?;
-        let attributes = item
+        let attributes: syn::Result<Vec<_>> = item
             .attrs
             .iter()
             .map(|attribute| {
@@ -103,21 +100,15 @@ impl<'s> EnumPatch<'s> {
             .flat_map(|token_stream| {
                 token_stream.map(|stream| syn::Attribute::parse_outer.parse2(stream))
             })
-            // .flat_map(|tokenstream| syn::Attribute::parse_outer.parse2(tokenstream).unwrap())
-            .fold(Ok(vec![]), |vector: syn::Result<Vec<_>>, item| {
-                if let Ok(mut vector) = vector {
-                    vector.extend(item?);
-                    Ok(vector)
-                } else {
-                    vector
-                }
+            .try_fold(vec![], |mut vector, item| {
+                vector.extend(item?);
+                Ok(vector)
             });
         let attributes = attributes?;
         Ok(Self {
             visibility: &item.vis,
             ident: &item.ident,
             fields,
-            generics: &item.generics,
             passed_attributes: attributes,
         })
     }
@@ -157,56 +148,3 @@ impl<'s> EnumPatch<'s> {
         }
     }
 }
-
-// impl Parse for EnumPatchField {
-//     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-//         Err(syn::Error::new(Span::mixed_site(), "unimplemented"))
-//     }
-// }
-// impl Parse for EnumPatch {
-//     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-//         Err(syn::Error::new(Span::mixed_site(), "unimplemented"))
-//     }
-// }
-
-// impl EnumPatch {
-//     pub(crate) fn to_construction(self) -> EnumConstructionInfo {
-//         let pairings: Vec<(&String, syn::Ident)> = self
-//             .data
-//             .take_struct()
-//             .unwrap()
-//             .fields
-//             .iter()
-//             .flat_map(|f| {
-//                 f.variant_group
-//                     .as_ref()
-//                     .map(|v| v.iter().map(|f| f.value()).collect())
-//                     .unwrap_or(vec![f.ident.unwrap().to_string()])
-//                     .iter()
-//                     .map(|group| (group, f.ident.clone().unwrap()))
-//             })
-//             .collect();
-//         let mut mappings: HashMap<&String, Vec<syn::Ident>> = HashMap::new();
-//         for pair in pairings {
-//             if let Some(inner) = mappings.get_mut(&pair.0) {
-//                 inner.push(pair.1);
-//             } else {
-//                 mappings.insert(pair.0, vec![pair.1]);
-//             }
-//         }
-//         let variants: Vec<EnumConstructionVariant> = mappings
-//             .into_iter()
-//             .map(|(key, value)| EnumConstructionVariant {
-//                 name: syn::Ident::new(&key, Span::call_site()),
-//                 ident_mappings: value,
-//             })
-//             .collect();
-//         let mut enum_name = self.ident.to_string();
-//         enum_name.push_str("Update");
-//         let construction = EnumConstructionInfo {
-//             name: enum_name,
-//             variants,
-//         };
-//         construction
-//     }
-// }
