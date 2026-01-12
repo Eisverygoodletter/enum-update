@@ -1,7 +1,10 @@
 use convert_case::{Case, Casing};
 use quote::{quote, ToTokens};
-use std::{borrow::Cow, collections::HashMap};
-use syn::{parse::Parser, ItemStruct};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
+use syn::{parse::Parser, Attribute, ItemStruct, Lifetime, TypeArray, TypeBareFn, TypeReference};
 
 use crate::{EnumConstructionInfo, EnumConstructionVariant};
 
@@ -21,32 +24,21 @@ pub(crate) struct EnumPatchField<'s> {
 impl<'s> EnumPatchField<'s> {
     pub(crate) fn from_field(field: &'s syn::Field) -> syn::Result<Self> {
         let mut all_variant_groups: Vec<std::borrow::Cow<'s, syn::Ident>> = vec![];
-        let mut default_variant_group: Option<Cow<'s, syn::Ident>> =
-            Some(Cow::Borrowed(field.ident.as_ref().unwrap()));
         for attr in &field.attrs {
             if let Some(attr_name) = attr.path().get_ident() {
                 match attr_name.to_string().as_str() {
                     "variant_group" => {
+                        if let syn::Meta::Path(_) = &attr.meta {
+                            all_variant_groups.push(Cow::Borrowed(field.ident.as_ref().unwrap()));
+                            continue;
+                        }
                         let extra_group_idents = attr.parse_args_with(parse_ident_list)?;
                         all_variant_groups
                             .extend(extra_group_idents.into_iter().map(std::borrow::Cow::Owned));
                     }
-                    "skip_default" => {
-                        let _ = default_variant_group.take();
-                    }
-                    "rename_default" => {
-                        let new_ident =
-                            attr.parse_args_with(|input: syn::parse::ParseStream<'_>| {
-                                input.parse::<syn::Ident>()
-                            })?;
-                        default_variant_group = Some(Cow::Owned(new_ident));
-                    }
                     _ => {}
                 }
             }
-        }
-        if let Some(default_variant) = default_variant_group {
-            all_variant_groups.push(default_variant);
         }
         Ok(Self {
             ident: field.ident.as_ref().unwrap(),
@@ -57,6 +49,7 @@ impl<'s> EnumPatchField<'s> {
 }
 #[derive(Debug)]
 pub(crate) struct EnumPatch<'s> {
+    visibility: &'s syn::Visibility,
     ident: &'s syn::Ident,
     fields: Vec<EnumPatchField<'s>>,
     generics: &'s syn::Generics,
@@ -84,12 +77,11 @@ impl<'s> EnumPatch<'s> {
                     .get_ident()
                     .is_some_and(|v| v == "enum_update")
                 {
-                    let mut ts = attribute
-                        .meta
-                        .require_list()
-                        .unwrap()
-                        .to_token_stream()
-                        .into_iter();
+                    let meta_list = match attribute.meta.require_list() {
+                        Ok(meta_list) => meta_list,
+                        Err(e) => return Err(e),
+                    };
+                    let mut ts = meta_list.to_token_stream().into_iter();
                     // discard enum_update
                     // refer to https://docs.rs/strum_macros/0.26.4/src/strum_macros/macros/enum_discriminants.rs.html
                     let _ = ts.next();
@@ -103,14 +95,26 @@ impl<'s> EnumPatch<'s> {
                     if passthrough_attribute.is_empty() {
                         unimplemented!()
                     }
-                    quote! {#[#passthrough_attribute]}
+                    Ok(quote! {#[#passthrough_attribute]})
                 } else {
-                    quote! {}
+                    Ok(quote! {})
                 }
             })
-            .flat_map(|tokenstream| syn::Attribute::parse_outer.parse2(tokenstream).unwrap())
-            .collect::<Vec<_>>();
+            .flat_map(|token_stream| {
+                token_stream.map(|stream| syn::Attribute::parse_outer.parse2(stream))
+            })
+            // .flat_map(|tokenstream| syn::Attribute::parse_outer.parse2(tokenstream).unwrap())
+            .fold(Ok(vec![]), |vector: syn::Result<Vec<_>>, item| {
+                if let Ok(mut vector) = vector {
+                    vector.extend(item?);
+                    Ok(vector)
+                } else {
+                    vector
+                }
+            });
+        let attributes = attributes?;
         Ok(Self {
+            visibility: &item.vis,
             ident: &item.ident,
             fields,
             generics: &item.generics,
@@ -142,11 +146,12 @@ impl<'s> EnumPatch<'s> {
         let variants = self.get_variants();
         let enum_name_string = self.ident.to_string() + "Update";
         let enum_name = syn::Ident::new(&enum_name_string, self.ident.span());
+
         EnumConstructionInfo {
             struct_name: self.ident,
+            enum_visibility: self.visibility,
             enum_name,
             variants,
-            generics: self.generics,
             _source: self,
             passed_attributes: &self.passed_attributes,
         }

@@ -3,6 +3,7 @@ use enum_update::{EnumUpdate, EnumUpdateSetters};
 #[derive(Debug, EnumUpdate, Clone, EnumUpdateSetters)]
 #[enum_update(derive(Debug, Clone, PartialEq))]
 pub struct SharedState {
+    #[variant_group]
     managed_by_first: bool,
 }
 
@@ -25,7 +26,7 @@ fn communicating_threads() {
             assert!(!thread_two_state.managed_by_first);
             // now, we receive the change
             let change = two_recv.recv().unwrap();
-            assert_eq!(change, SharedStateUpdate::ManagedByFirst(true));
+            assert_eq!(change, SharedStateUpdate::ManagedByFirst { managed_by_first: true });
             // applying the change
             thread_two_state.apply(change);
             // it becomes true

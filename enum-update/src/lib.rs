@@ -12,6 +12,7 @@
 //! #[derive(Debug, EnumUpdate, Clone, EnumUpdateSetters)]
 //! #[enum_update(derive(Debug, Clone, PartialEq))]
 //! pub struct SharedState {
+//!     #[variant_group]
 //!     value: String,
 //! }
 //! let mut thread_a_state = SharedState { value: "Hello".to_string() };
@@ -30,7 +31,7 @@
 //! ello".to_string());
 //!         // now, we receive the change
 //!         let change = receiver.recv().unwrap();
-//!         assert_eq!(change, SharedStateUpdate::Value("World".to_string()));
+//!         assert_eq!(change, SharedStateUpdate::Value{ value: "World".to_string() });
 //!         // applying the change
 //!         thread_b_state.apply(change);
 //!         // it becomes true

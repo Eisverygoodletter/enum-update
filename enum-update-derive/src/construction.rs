@@ -1,12 +1,13 @@
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
 use std::borrow::Cow;
+use syn::{ConstParam, LifetimeParam, TypeParam};
 
 use crate::{convert_ident_to_case, EnumPatch};
 pub(crate) struct EnumConstructionInfo<'s> {
     pub(crate) struct_name: &'s syn::Ident,
+    pub(crate) enum_visibility: &'s syn::Visibility,
     pub(crate) enum_name: syn::Ident,
     pub(crate) variants: Vec<EnumConstructionVariant<'s>>,
-    pub(crate) generics: &'s syn::Generics,
     pub(crate) passed_attributes: &'s Vec<syn::Attribute>,
     pub(crate) _source: &'s EnumPatch<'s>,
 }
@@ -34,15 +35,24 @@ impl<'s> EnumConstructionVariant<'s> {
         }
         Some(complete_stream)
     }
+    fn generate_pattern_matcher_with_idents(&self, enum_name: &syn::Ident) -> proc_macro2::TokenStream {
+        self.generate_constructor_with_idents(enum_name)
+    }
     fn generate_constructor_with_idents(&self, enum_name: &syn::Ident) -> proc_macro2::TokenStream {
-        let idents: Vec<&Cow<'s, syn::Ident>> = self.ident_mappings.iter().map(|v| &v.0).collect();
+        let idents: Vec<_> = self
+            .ident_mappings
+            .iter()
+            .map(|(ident, _)| ident)
+            .collect();
         let variant_name = &self.variant_name;
         quote! {
-            #enum_name::#variant_name(#(#idents),*)
+            #enum_name::#variant_name{
+                #(#idents),*
+            }
         }
     }
     fn generate_match_arm(&self, enum_name: &syn::Ident) -> proc_macro2::TokenStream {
-        let constructor = self.generate_constructor_with_idents(enum_name);
+        let constructor = self.generate_pattern_matcher_with_idents(enum_name);
         let assignments = self.generate_assignments();
         quote! {
             #constructor => {
@@ -53,7 +63,7 @@ impl<'s> EnumConstructionVariant<'s> {
     fn generate_setter(
         &self,
         enum_name: &syn::Ident,
-        enum_generics: &syn::Generics,
+        // enum_generics: &syn::Generics,
     ) -> Option<proc_macro2::TokenStream> {
         let variant_name = &self.variant_name;
         let lowercase = convert_ident_to_case(variant_name, convert_case::Case::Snake);
@@ -69,9 +79,8 @@ impl<'s> EnumConstructionVariant<'s> {
             .collect::<Vec<_>>();
         let assignments = self.generate_maybe_clone_assignments()?;
         let constructor = self.generate_constructor_with_idents(enum_name);
-        let (_impl_generics, ty_generics, _where_clause) = enum_generics.split_for_impl();
         Some(quote! {
-            pub fn #method_name(&mut self #(#name_type_pairs)*) -> #enum_name #ty_generics {
+            pub fn #method_name(&mut self #(#name_type_pairs)*) -> #enum_name {
                 #assignments
                 #constructor
             }
@@ -81,9 +90,17 @@ impl<'s> EnumConstructionVariant<'s> {
 impl ToTokens for EnumConstructionVariant<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant_name = &self.variant_name;
-        let types_iter = &self.ident_mappings.iter().map(|v| v.1).collect::<Vec<_>>();
+        let field_iter = &self
+            .ident_mappings
+            .iter()
+            .map(|(ident, ty)| {
+                quote! {#ident: #ty}
+            })
+            .collect::<Vec<_>>();
         let section = quote! {
-            #variant_name(#(#types_iter),*)
+            #variant_name {
+                #(#field_iter),*
+            }
         };
         tokens.append_all(section);
     }
@@ -98,11 +115,11 @@ impl EnumConstructionInfo<'_> {
     pub(crate) fn generate_enum(&self) -> proc_macro2::TokenStream {
         let enum_name = &self.enum_name;
         let mappings = &self.variants;
-        let (_impl_generics, ty_generics, _where_clause) = self.generics.split_for_impl();
         let attrs = self.passed_attributes;
+        let visibility = &self.enum_visibility;
         let enum_tokens = quote! {
             #(#attrs)*
-            enum #enum_name #ty_generics {
+            #visibility enum #enum_name {
                 #(#mappings),*
             }
         };
@@ -116,10 +133,11 @@ impl EnumConstructionInfo<'_> {
             .iter()
             .map(|v| v.generate_match_arm(&self.enum_name))
             .collect::<Vec<_>>();
-        let (impl_generics, ty_generics, _where_clause) = self.generics.split_for_impl();
+        // let (impl_generics, ty_generics, _where_clause) = self.generics.split_for_impl();
         quote! {
-            impl #impl_generics enum_update::EnumUpdate<#enum_name #ty_generics> for #struct_name #ty_generics {
-                fn apply(&mut self, patch: #enum_name #ty_generics) {
+            //TODO
+            impl enum_update::EnumUpdate<#enum_name> for #struct_name {
+                fn apply(&mut self, patch: #enum_name) {
                     match patch {
                         #(#field_token_streams),*
                     }
@@ -129,15 +147,14 @@ impl EnumConstructionInfo<'_> {
     }
     pub(crate) fn generate_setters(&self) -> proc_macro2::TokenStream {
         let struct_name = self.struct_name;
-        let generics = self.generics;
+        // let generics = self.generics;
         let methods = self
             .variants
             .iter()
-            .map(|v| v.generate_setter(&self.enum_name, self.generics))
+            .map(|v| v.generate_setter(&self.enum_name))
             .collect::<Vec<_>>();
-        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
         quote! {
-            impl #impl_generics #struct_name #ty_generics #where_clause {
+            impl #struct_name {
                 #(#methods)*
             }
         }

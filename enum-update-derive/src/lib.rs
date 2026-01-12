@@ -29,56 +29,18 @@ use quote::TokenStreamExt;
 ///     time: u32,
 ///     #[variant_group(RecordOne)]
 ///     value_one: u32,
+///     #[variant_group]
 ///     value_two: u32
 /// }
 /// ```
 /// will generate
 /// ```
 /// pub enum TimeSeriesDataUpdate {
-///     Time(u32),
-///     ValueOne(u32),
-///     ValueTwo(u32),
-///     RecordOne(u32, u32), // <- represents multiple changes
-/// }
-/// ```
-///
-/// ### `skip_default`
-/// Specifies that a default variant group should not be generated for a field.
-/// ```ignore
-/// # use enum_update_derive::EnumUpdate;
-/// #[derive(EnumUpdate)]
-/// pub struct TimeSeriesData {
-///     time: u32,
-///     value_one: u32,
-///     #[skip_default]
-///     cached_data
-/// }
-/// ```
-/// will generate
-/// ```
-/// pub enum TimeSeriesDataUpdate {
-///     Time(u32),
-///     ValueOne(u32)
-/// }
-/// ```
-///
-/// ### `rename_default`
-/// Renames the default variant group generated for a field.
-/// ```ignore
-/// #[derive(EnumUpdate)]
-/// pub struct TimeSeriesData {
-///     time: u32,
-///     value_one: u32,
-///     #[rename_default(new_name)]
-///     original_name: u32
-/// }
-/// ```
-/// will generate
-/// ```
-/// pub enum TimeSeriesDataUpdate {
-///     Time(u32),
-///     ValueOne(u32),
-///     NewName(u32), // <-- corresponds to original_name
+///     RecordOne {
+///         time: u32,
+///         value_one: u32,
+///     },
+///     ValueTwo { value_two: u32 },
 /// }
 /// ```
 ///
@@ -88,6 +50,7 @@ use quote::TokenStreamExt;
 /// #[derive(EnumUpdate)]
 /// #[enum_update(derive(Debug))]
 /// pub struct State {
+///     #[variant_group]
 ///     value: u32
 /// }
 /// ```
@@ -95,13 +58,10 @@ use quote::TokenStreamExt;
 /// ```
 /// #[derive(Debug)]
 /// pub enum StateUpdate {
-///     Value(u32)
+///     Value { value: u32 }
 /// }
 /// ```
-#[proc_macro_derive(
-    EnumUpdate,
-    attributes(variant_group, skip_default, rename_default, enum_update)
-)]
+#[proc_macro_derive(EnumUpdate, attributes(variant_group, enum_update))]
 pub fn enum_update_derive(inputs: TokenStream) -> TokenStream {
     let parsed = syn::parse(inputs).unwrap();
     let receiver = EnumPatch::from_item_struct(&parsed).unwrap();
