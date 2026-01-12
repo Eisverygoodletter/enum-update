@@ -3,7 +3,7 @@
 
 `enum-update` is a set of macros and traits for representing state changes as enums.
 
-> Note: `enum-update` is currently at `v0.1.0` and is not at stable `v1.0.0` yet. Overall functionality should stay the same, but trait and macro names may change between versions.
+> Note: `enum-update` is currently at `v0.2.0` and is not at stable `v1.0.0` yet. Overall functionality should stay the same, but trait and macro names may change between versions.
 
 # Adding `enum-update` to your project
 
@@ -31,21 +31,23 @@ The following derive macros are provided by `enum-update`
 use enum_update::*;
 #[derive(Debug, PartialEq, EnumUpdate)]
 pub struct MyState {
+    #[variant_group]
     value: String,
+    #[variant_group]
     another_value: u32,
 }
 // `EnumUpdate` will generate:
 // pub enum MyStateUpdate {
-//     Value(String),
-//     AnotherValue(String),
+//     Value { value: String },
+//     AnotherValue { value: u32 },
 // }
 // impl EnumUpdate<MyStateUpdate> for MyState {
 //     fn apply(&mut self, update: MyStateUpdate) {
 //         match update {
-//             MyStateUpdate::Value(value) => {
+//             MyStateUpdate::Value { value } => {
 //                 self.value = value;
 //             },
-//             MyStateUpdate::AnotherValue(another_value) => {
+//             MyStateUpdate::AnotherValue { another_value } => {
 //                 self.another_value = another_value;
 //             }
 //         }
@@ -62,7 +64,27 @@ assert_eq!(state, MyState {
     another_value: 123
 });
 ```
+### Overlapping variant groups
 
+Applying the same variant group on multiple fields will group them together
+```rust
+#[derive(EnumUpdate)]
+pub struct OverallState {
+    #[variant_group(SensorAInput)]
+    speed: i32,
+    #[variant_group(SensorAInput, SensorBInput)]
+    temperature: i32,
+    #[variant_group(SensorBInput)]
+    weight: i32,
+    // no attribute on d means no enum variant will include d.
+    d: i32,
+}
+// `EnumUpdate` will generate
+// pub enum MyStateUpdate {
+//     SensorAInput { speed: i32, temperature: i32 },
+//     SensorBInput { temperature: i32, weight: i32 },
+// }
+```
 ## `EnumUpdateSetters`
 
 ### Basic example
@@ -70,27 +92,23 @@ assert_eq!(state, MyState {
 ```rust
 use enum_update::*;
 #[derive(Debug, PartialEq, EnumUpdate, EnumUpdateSetters)]
-pub struct MyState<'a> {
+pub struct MyState {
+    #[variant_group]
     value: String,
-    my_reference: &'a str
 }
 // `EnumUpdateSetters` will generate:
-// impl<'a> MyState<'a> {
+// impl MyState {
 //     fn modify_value(&mut self, value: String) -> MyStateUpdate {
 //         self.value = value.clone();
-//     }
-//     fn modify_my_reference(&mut self, my_reference: &'a str) -> MyStateUpdate {
-//         self.my_reference = my_reference;
+//         MystateUpdate { value }
 //     }
 // }
 let mut state: MyState<'static> = MyState {
     value: "hello".to_string(),
-    my_reference: "world",
 };
 state.modify_my_reference("enum updates");
 assert_eq!(state, MyState {
     value: "hello".to_string(),
-    my_reference: "enum updates"
 });
 ```
 
